@@ -58,7 +58,8 @@ void texEnableRawMode(void) {
 
   struct termios raw_attrs = app.original_termios;
 
-  // Disable software flow control (Ctrl-S/Ctrl-Q), CR-to-NL conversion, and break/parity conditions
+  // Disable software flow control (Ctrl-S/Ctrl-Q), CR-to-NL conversion, and
+  // break/parity conditions
   raw_attrs.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
 
   // Disable post-processing of output characters
@@ -67,7 +68,8 @@ void texEnableRawMode(void) {
   // Configure character size to 8 bits
   raw_attrs.c_cflag |= (CS8);
 
-  // Disable echo, canonical mode, extended input processing, and interrupt signals (Ctrl-C/Ctrl-Z)
+  // Disable echo, canonical mode, extended input processing, and interrupt
+  // signals (Ctrl-C/Ctrl-Z)
   raw_attrs.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
 
   // Read timeout settings: non-blocking read with 100ms timeout
@@ -91,41 +93,60 @@ int texReadInputKey(void) {
     }
   }
 
-  // Parse multi-byte ANSI escape sequences (arrows, home/end, page up/down, delete)
+  // Parse multi-byte ANSI escape sequences (arrows, home/end, page up/down,
+  // delete)
   if (byte_in == '\x1b') {
     char escape_seq[3];
 
-    if (read(STDIN_FILENO, &escape_seq[0], 1) != 1) return '\x1b';
-    if (read(STDIN_FILENO, &escape_seq[1], 1) != 1) return '\x1b';
+    if (read(STDIN_FILENO, &escape_seq[0], 1) != 1)
+      return '\x1b';
+    if (read(STDIN_FILENO, &escape_seq[1], 1) != 1)
+      return '\x1b';
 
     if (escape_seq[0] == '[') {
       if (escape_seq[1] >= '0' && escape_seq[1] <= '9') {
-        if (read(STDIN_FILENO, &escape_seq[2], 1) != 1) return '\x1b';
+        if (read(STDIN_FILENO, &escape_seq[2], 1) != 1)
+          return '\x1b';
         if (escape_seq[2] == '~') {
           switch (escape_seq[1]) {
-            case '1': return KEY_HOME;
-            case '3': return KEY_DEL;
-            case '4': return KEY_END;
-            case '5': return KEY_PAGE_UP;
-            case '6': return KEY_PAGE_DOWN;
-            case '7': return KEY_HOME;
-            case '8': return KEY_END;
+          case '1':
+            return KEY_HOME;
+          case '3':
+            return KEY_DEL;
+          case '4':
+            return KEY_END;
+          case '5':
+            return KEY_PAGE_UP;
+          case '6':
+            return KEY_PAGE_DOWN;
+          case '7':
+            return KEY_HOME;
+          case '8':
+            return KEY_END;
           }
         }
       } else {
         switch (escape_seq[1]) {
-          case 'A': return KEY_ARROW_UP;
-          case 'B': return KEY_ARROW_DOWN;
-          case 'C': return KEY_ARROW_RIGHT;
-          case 'D': return KEY_ARROW_LEFT;
-          case 'H': return KEY_HOME;
-          case 'F': return KEY_END;
+        case 'A':
+          return KEY_ARROW_UP;
+        case 'B':
+          return KEY_ARROW_DOWN;
+        case 'C':
+          return KEY_ARROW_RIGHT;
+        case 'D':
+          return KEY_ARROW_LEFT;
+        case 'H':
+          return KEY_HOME;
+        case 'F':
+          return KEY_END;
         }
       }
     } else if (escape_seq[0] == 'O') {
       switch (escape_seq[1]) {
-        case 'H': return KEY_HOME;
-        case 'F': return KEY_END;
+      case 'H':
+        return KEY_HOME;
+      case 'F':
+        return KEY_END;
       }
     }
 
@@ -141,11 +162,11 @@ void texHandleKeyPress(void) {
   int key = texReadInputKey();
 
   switch (key) {
-    case TEX_CTRL('q'):
-      write(STDOUT_FILENO, "\x1b[2J", 4);
-      write(STDOUT_FILENO, "\x1b[H", 3);
-      exit(0);
-      break;
+  case TEX_CTRL('q'):
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
+    exit(0);
+    break;
   }
 }
 
