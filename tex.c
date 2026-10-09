@@ -72,19 +72,19 @@ typedef struct TexLine {
 } TexLine;
 
 struct TexState {
-  int cursor_x, cursor_y;       // File cursor coordinate
-  int render_x;                 // Render column coordinate (for tabs)
-  int row_offset;               // Vertical viewport scroll offset
-  int col_offset;               // Horizontal viewport scroll offset
-  int screen_rows;              // Screen row height (usable for text)
-  int screen_cols;              // Screen column width
-  int num_lines;                // Total lines in document
-  TexLine *lines;               // Array of lines
-  int is_modified;              // Dirty flag (unsaved edits)
-  char *filepath;               // Path of active file
-  char status_message[80];      // Ephemeral message bar content
-  time_t status_message_time;   // Time when message was posted
-  struct TexSyntax *syntax;     // Active syntax highlighting rules
+  int cursor_x, cursor_y;     // File cursor coordinate
+  int render_x;               // Render column coordinate (for tabs)
+  int row_offset;             // Vertical viewport scroll offset
+  int col_offset;             // Horizontal viewport scroll offset
+  int screen_rows;            // Screen row height (usable for text)
+  int screen_cols;            // Screen column width
+  int num_lines;              // Total lines in document
+  TexLine *lines;             // Array of lines
+  int is_modified;            // Dirty flag (unsaved edits)
+  char *filepath;             // Path of active file
+  char status_message[80];    // Ephemeral message bar content
+  time_t status_message_time; // Time when message was posted
+  struct TexSyntax *syntax;   // Active syntax highlighting rules
   struct termios original_termios;
 };
 
@@ -94,23 +94,17 @@ static struct TexState app;
 
 char *C_HL_extensions[] = {".c", ".h", ".cpp", ".cc", ".hpp", NULL};
 char *C_HL_keywords[] = {
-  "switch", "if", "while", "for", "break", "continue", "return", "else",
-  "struct", "union", "typedef", "static", "enum", "class", "case",
-  "const", "sizeof", "volatile", "register",
-  "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
-  "void|", "size_t|", "ssize_t|", "bool|", "uint8_t|", "uint16_t|",
-  "uint32_t|", "uint64_t|", "int8_t|", "int16_t|", "int32_t|", "int64_t|",
-  NULL
-};
+    "switch",    "if",        "while",     "for",       "break",    "continue",
+    "return",    "else",      "struct",    "union",     "typedef",  "static",
+    "enum",      "class",     "case",      "const",     "sizeof",   "volatile",
+    "register",  "int|",      "long|",     "double|",   "float|",   "char|",
+    "unsigned|", "signed|",   "void|",     "size_t|",   "ssize_t|", "bool|",
+    "uint8_t|",  "uint16_t|", "uint32_t|", "uint64_t|", "int8_t|",  "int16_t|",
+    "int32_t|",  "int64_t|",  NULL};
 
 struct TexSyntax HLDB[] = {
-  {
-    "c",
-    C_HL_extensions,
-    C_HL_keywords,
-    "//", "/*", "*/",
-    TEX_HL_FLAG_NUMBERS | TEX_HL_FLAG_STRINGS
-  },
+    {"c", C_HL_extensions, C_HL_keywords, "//", "/*", "*/",
+     TEX_HL_FLAG_NUMBERS | TEX_HL_FLAG_STRINGS},
 };
 
 #define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
@@ -132,15 +126,14 @@ struct ScreenBuffer {
 
 void screenBufferAppend(struct ScreenBuffer *sb, const char *s, int len) {
   char *new_buf = realloc(sb->data, sb->length + len);
-  if (new_buf == NULL) return;
+  if (new_buf == NULL)
+    return;
   memcpy(&new_buf[sb->length], s, len);
   sb->data = new_buf;
   sb->length += len;
 }
 
-void screenBufferFree(struct ScreenBuffer *sb) {
-  free(sb->data);
-}
+void screenBufferFree(struct ScreenBuffer *sb) { free(sb->data); }
 
 /*** Low-Level Terminal Control ***/
 
@@ -181,43 +174,62 @@ int texReadInputKey(void) {
   char byte_in;
 
   while ((bytes_read = read(STDIN_FILENO, &byte_in, 1)) != 1) {
-    if (bytes_read == -1 && errno != EAGAIN) texPanic("read");
+    if (bytes_read == -1 && errno != EAGAIN)
+      texPanic("read");
   }
 
   if (byte_in == '\x1b') {
     char escape_seq[3];
 
-    if (read(STDIN_FILENO, &escape_seq[0], 1) != 1) return '\x1b';
-    if (read(STDIN_FILENO, &escape_seq[1], 1) != 1) return '\x1b';
+    if (read(STDIN_FILENO, &escape_seq[0], 1) != 1)
+      return '\x1b';
+    if (read(STDIN_FILENO, &escape_seq[1], 1) != 1)
+      return '\x1b';
 
     if (escape_seq[0] == '[') {
       if (escape_seq[1] >= '0' && escape_seq[1] <= '9') {
-        if (read(STDIN_FILENO, &escape_seq[2], 1) != 1) return '\x1b';
+        if (read(STDIN_FILENO, &escape_seq[2], 1) != 1)
+          return '\x1b';
         if (escape_seq[2] == '~') {
           switch (escape_seq[1]) {
-            case '1': return KEY_HOME;
-            case '3': return KEY_DEL;
-            case '4': return KEY_END;
-            case '5': return KEY_PAGE_UP;
-            case '6': return KEY_PAGE_DOWN;
-            case '7': return KEY_HOME;
-            case '8': return KEY_END;
+          case '1':
+            return KEY_HOME;
+          case '3':
+            return KEY_DEL;
+          case '4':
+            return KEY_END;
+          case '5':
+            return KEY_PAGE_UP;
+          case '6':
+            return KEY_PAGE_DOWN;
+          case '7':
+            return KEY_HOME;
+          case '8':
+            return KEY_END;
           }
         }
       } else {
         switch (escape_seq[1]) {
-          case 'A': return KEY_ARROW_UP;
-          case 'B': return KEY_ARROW_DOWN;
-          case 'C': return KEY_ARROW_RIGHT;
-          case 'D': return KEY_ARROW_LEFT;
-          case 'H': return KEY_HOME;
-          case 'F': return KEY_END;
+        case 'A':
+          return KEY_ARROW_UP;
+        case 'B':
+          return KEY_ARROW_DOWN;
+        case 'C':
+          return KEY_ARROW_RIGHT;
+        case 'D':
+          return KEY_ARROW_LEFT;
+        case 'H':
+          return KEY_HOME;
+        case 'F':
+          return KEY_END;
         }
       }
     } else if (escape_seq[0] == 'O') {
       switch (escape_seq[1]) {
-        case 'H': return KEY_HOME;
-        case 'F': return KEY_END;
+      case 'H':
+        return KEY_HOME;
+      case 'F':
+        return KEY_END;
       }
     }
     return '\x1b';
@@ -230,17 +242,22 @@ int texGetCursorPosition(int *rows, int *cols) {
   char buf[32];
   unsigned int i = 0;
 
-  if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) return -1;
+  if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
+    return -1;
 
   while (i < sizeof(buf) - 1) {
-    if (read(STDIN_FILENO, &buf[i], 1) != 1) break;
-    if (buf[i] == 'R') break;
+    if (read(STDIN_FILENO, &buf[i], 1) != 1)
+      break;
+    if (buf[i] == 'R')
+      break;
     i++;
   }
   buf[i] = '\0';
 
-  if (buf[0] != '\x1b' || buf[1] != '[') return -1;
-  if (sscanf(&buf[2], "%d;%d", rows, cols) != 2) return -1;
+  if (buf[0] != '\x1b' || buf[1] != '[')
+    return -1;
+  if (sscanf(&buf[2], "%d;%d", rows, cols) != 2)
+    return -1;
 
   return 0;
 }
@@ -277,7 +294,8 @@ void texUpdateSyntax(TexLine *line) {
   line->highlight = realloc(line->highlight, line->render_size);
   memset(line->highlight, TEX_HL_NORMAL, line->render_size);
 
-  if (app.syntax == NULL) return;
+  if (app.syntax == NULL)
+    return;
 
   char **keywords = app.syntax->keywords;
   char *scs = app.syntax->singleline_comment_start;
@@ -336,7 +354,8 @@ void texUpdateSyntax(TexLine *line) {
           i += 2;
           continue;
         }
-        if (c == in_string) in_string = 0;
+        if (c == in_string)
+          in_string = 0;
         i++;
         prev_sep = 1;
         continue;
@@ -367,11 +386,13 @@ void texUpdateSyntax(TexLine *line) {
       for (j = 0; keywords[j]; j++) {
         int klen = strlen(keywords[j]);
         int is_type = keywords[j][klen - 1] == '|';
-        if (is_type) klen--;
+        if (is_type)
+          klen--;
 
         if (!strncmp(&line->rendered[i], keywords[j], klen) &&
             is_separator(line->rendered[i + klen])) {
-          memset(&line->highlight[i], is_type ? TEX_HL_KEYWORD2 : TEX_HL_KEYWORD1, klen);
+          memset(&line->highlight[i],
+                 is_type ? TEX_HL_KEYWORD2 : TEX_HL_KEYWORD1, klen);
           i += klen;
           break;
         }
@@ -395,20 +416,28 @@ void texUpdateSyntax(TexLine *line) {
 
 int texSyntaxToColor(int hl) {
   switch (hl) {
-    case TEX_HL_COMMENT:
-    case TEX_HL_MLCOMMENT: return 36; // Cyan
-    case TEX_HL_KEYWORD1:  return 33; // Yellow
-    case TEX_HL_KEYWORD2:  return 32; // Green
-    case TEX_HL_STRING:    return 35; // Magenta
-    case TEX_HL_NUMBER:    return 31; // Red
-    case TEX_HL_MATCH:     return 34; // Blue
-    default: return 37;               // White
+  case TEX_HL_COMMENT:
+  case TEX_HL_MLCOMMENT:
+    return 36; // Cyan
+  case TEX_HL_KEYWORD1:
+    return 33; // Yellow
+  case TEX_HL_KEYWORD2:
+    return 32; // Green
+  case TEX_HL_STRING:
+    return 35; // Magenta
+  case TEX_HL_NUMBER:
+    return 31; // Red
+  case TEX_HL_MATCH:
+    return 34; // Blue
+  default:
+    return 37; // White
   }
 }
 
 void texSelectSyntax(void) {
   app.syntax = NULL;
-  if (app.filepath == NULL) return;
+  if (app.filepath == NULL)
+    return;
 
   char *ext = strrchr(app.filepath, '.');
 
@@ -452,7 +481,8 @@ int texLineRxToCx(TexLine *line, int rx) {
       cur_rx += (TEX_TAB_STOP - 1) - (cur_rx % TEX_TAB_STOP);
     }
     cur_rx++;
-    if (cur_rx > rx) return cx;
+    if (cur_rx > rx)
+      return cx;
   }
   return cx;
 }
@@ -460,7 +490,8 @@ int texLineRxToCx(TexLine *line, int rx) {
 void texUpdateLine(TexLine *line) {
   int tabs = 0;
   for (int j = 0; j < line->size; j++) {
-    if (line->chars[j] == '\t') tabs++;
+    if (line->chars[j] == '\t')
+      tabs++;
   }
 
   free(line->rendered);
@@ -470,7 +501,8 @@ void texUpdateLine(TexLine *line) {
   for (int j = 0; j < line->size; j++) {
     if (line->chars[j] == '\t') {
       line->rendered[idx++] = ' ';
-      while (idx % TEX_TAB_STOP != 0) line->rendered[idx++] = ' ';
+      while (idx % TEX_TAB_STOP != 0)
+        line->rendered[idx++] = ' ';
     } else {
       line->rendered[idx++] = line->chars[j];
     }
@@ -482,12 +514,15 @@ void texUpdateLine(TexLine *line) {
 }
 
 void texInsertRow(int at, char *s, size_t len) {
-  if (at < 0 || at > app.num_lines) return;
+  if (at < 0 || at > app.num_lines)
+    return;
 
   app.lines = realloc(app.lines, sizeof(TexLine) * (app.num_lines + 1));
-  memmove(&app.lines[at + 1], &app.lines[at], sizeof(TexLine) * (app.num_lines - at));
+  memmove(&app.lines[at + 1], &app.lines[at],
+          sizeof(TexLine) * (app.num_lines - at));
 
-  for (int j = at + 1; j <= app.num_lines; j++) app.lines[j].idx++;
+  for (int j = at + 1; j <= app.num_lines; j++)
+    app.lines[j].idx++;
 
   app.lines[at].idx = at;
   app.lines[at].size = len;
@@ -513,19 +548,23 @@ void texFreeLine(TexLine *line) {
 }
 
 void texDeleteRow(int at) {
-  if (at < 0 || at >= app.num_lines) return;
+  if (at < 0 || at >= app.num_lines)
+    return;
 
   texFreeLine(&app.lines[at]);
-  memmove(&app.lines[at], &app.lines[at + 1], sizeof(TexLine) * (app.num_lines - at - 1));
+  memmove(&app.lines[at], &app.lines[at + 1],
+          sizeof(TexLine) * (app.num_lines - at - 1));
 
-  for (int j = at; j < app.num_lines - 1; j++) app.lines[j].idx--;
+  for (int j = at; j < app.num_lines - 1; j++)
+    app.lines[j].idx--;
 
   app.num_lines--;
   app.is_modified++;
 }
 
 void texLineInsertChar(TexLine *line, int at, int c) {
-  if (at < 0 || at > line->size) at = line->size;
+  if (at < 0 || at > line->size)
+    at = line->size;
   line->chars = realloc(line->chars, line->size + 2);
   memmove(&line->chars[at + 1], &line->chars[at], line->size - at + 1);
   line->size++;
@@ -544,7 +583,8 @@ void texLineAppendString(TexLine *line, char *s, size_t len) {
 }
 
 void texLineDeleteChar(TexLine *line, int at) {
-  if (at < 0 || at >= line->size) return;
+  if (at < 0 || at >= line->size)
+    return;
   memmove(&line->chars[at], &line->chars[at + 1], line->size - at);
   line->size--;
   texUpdateLine(line);
@@ -566,7 +606,8 @@ void texInsertNewline(void) {
     texInsertRow(app.cursor_y, "", 0);
   } else {
     TexLine *row = &app.lines[app.cursor_y];
-    texInsertRow(app.cursor_y + 1, &row->chars[app.cursor_x], row->size - app.cursor_x);
+    texInsertRow(app.cursor_y + 1, &row->chars[app.cursor_x],
+                 row->size - app.cursor_x);
     row = &app.lines[app.cursor_y];
     row->size = app.cursor_x;
     row->chars[row->size] = '\0';
@@ -577,8 +618,10 @@ void texInsertNewline(void) {
 }
 
 void texDeleteChar(void) {
-  if (app.cursor_y == app.num_lines) return;
-  if (app.cursor_x == 0 && app.cursor_y == 0) return;
+  if (app.cursor_y == app.num_lines)
+    return;
+  if (app.cursor_x == 0 && app.cursor_y == 0)
+    return;
 
   TexLine *row = &app.lines[app.cursor_y];
   if (app.cursor_x > 0) {
@@ -630,7 +673,8 @@ void texOpenFile(const char *filepath) {
   ssize_t linelen;
 
   while ((linelen = getline(&line, &linecap, fp)) != -1) {
-    while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r')) {
+    while (linelen > 0 &&
+           (line[linelen - 1] == '\n' || line[linelen - 1] == '\r')) {
       linelen--;
     }
     texInsertRow(app.num_lines, line, linelen);
@@ -682,7 +726,8 @@ void texSearchCallback(char *query, int key) {
   static char *saved_hl = NULL;
 
   if (saved_hl) {
-    memcpy(app.lines[saved_hl_line].highlight, saved_hl, app.lines[saved_hl_line].render_size);
+    memcpy(app.lines[saved_hl_line].highlight, saved_hl,
+           app.lines[saved_hl_line].render_size);
     free(saved_hl);
     saved_hl = NULL;
   }
@@ -700,13 +745,16 @@ void texSearchCallback(char *query, int key) {
     direction = 1;
   }
 
-  if (last_match == -1) direction = 1;
+  if (last_match == -1)
+    direction = 1;
   int current = last_match;
 
   for (int i = 0; i < app.num_lines; i++) {
     current += direction;
-    if (current == -1) current = app.num_lines - 1;
-    else if (current == app.num_lines) current = 0;
+    if (current == -1)
+      current = app.num_lines - 1;
+    else if (current == app.num_lines)
+      current = 0;
 
     TexLine *row = &app.lines[current];
     char *match = strstr(row->rendered, query);
@@ -719,7 +767,8 @@ void texSearchCallback(char *query, int key) {
       saved_hl_line = current;
       saved_hl = malloc(row->render_size);
       memcpy(saved_hl, row->highlight, row->render_size);
-      memset(&row->highlight[match - row->rendered], TEX_HL_MATCH, strlen(query));
+      memset(&row->highlight[match - row->rendered], TEX_HL_MATCH,
+             strlen(query));
       break;
     }
   }
@@ -731,7 +780,8 @@ void texSearch(void) {
   int saved_coloff = app.col_offset;
   int saved_rowoff = app.row_offset;
 
-  char *query = texPromptInput("Search: %s (Use ESC/Arrows/Enter)", texSearchCallback);
+  char *query =
+      texPromptInput("Search: %s (Use ESC/Arrows/Enter)", texSearchCallback);
 
   if (query) {
     free(query);
@@ -757,16 +807,19 @@ char *texPromptInput(char *prompt, void (*callback)(char *, int)) {
 
     int c = texReadInputKey();
     if (c == KEY_DEL || c == TEX_CTRL('h') || c == KEY_BACKSPACE) {
-      if (buflen != 0) buf[--buflen] = '\0';
+      if (buflen != 0)
+        buf[--buflen] = '\0';
     } else if (c == '\x1b') {
       texSetStatusMessage("");
-      if (callback) callback(buf, c);
+      if (callback)
+        callback(buf, c);
       free(buf);
       return NULL;
     } else if (c == '\r') {
       if (buflen != 0) {
         texSetStatusMessage("");
-        if (callback) callback(buf, c);
+        if (callback)
+          callback(buf, c);
         return buf;
       }
     } else if (!iscntrl(c) && c < 128) {
@@ -778,7 +831,8 @@ char *texPromptInput(char *prompt, void (*callback)(char *, int)) {
       buf[buflen] = '\0';
     }
 
-    if (callback) callback(buf, c);
+    if (callback)
+      callback(buf, c);
   }
 }
 
@@ -811,22 +865,26 @@ void texRenderRows(struct ScreenBuffer *sb) {
       if (app.num_lines == 0 && y == app.screen_rows / 3) {
         char welcome[80];
         int welcomelen = snprintf(welcome, sizeof(welcome),
-          "Tex Editor -- Version %s", TEX_VERSION);
-        if (welcomelen > app.screen_cols) welcomelen = app.screen_cols;
+                                  "Tex Editor -- Version %s", TEX_VERSION);
+        if (welcomelen > app.screen_cols)
+          welcomelen = app.screen_cols;
         int padding = (app.screen_cols - welcomelen) / 2;
         if (padding) {
           screenBufferAppend(sb, "~", 1);
           padding--;
         }
-        while (padding--) screenBufferAppend(sb, " ", 1);
+        while (padding--)
+          screenBufferAppend(sb, " ", 1);
         screenBufferAppend(sb, welcome, welcomelen);
       } else {
         screenBufferAppend(sb, "~", 1);
       }
     } else {
       int len = app.lines[filerow].render_size - app.col_offset;
-      if (len < 0) len = 0;
-      if (len > app.screen_cols) len = app.screen_cols;
+      if (len < 0)
+        len = 0;
+      if (len > app.screen_cols)
+        len = app.screen_cols;
 
       char *c = &app.lines[filerow].rendered[app.col_offset];
       unsigned char *hl = &app.lines[filerow].highlight[app.col_offset];
@@ -840,7 +898,8 @@ void texRenderRows(struct ScreenBuffer *sb) {
           screenBufferAppend(sb, "\x1b[m", 3);
           if (current_color != -1) {
             char color_buf[16];
-            int clen = snprintf(color_buf, sizeof(color_buf), "\x1b[%dm", current_color);
+            int clen = snprintf(color_buf, sizeof(color_buf), "\x1b[%dm",
+                                current_color);
             screenBufferAppend(sb, color_buf, clen);
           }
         } else if (hl[j] == TEX_HL_NORMAL) {
@@ -854,7 +913,8 @@ void texRenderRows(struct ScreenBuffer *sb) {
           if (color != current_color) {
             current_color = color;
             char color_buf[16];
-            int clen = snprintf(color_buf, sizeof(color_buf), "\x1b[%dm", color);
+            int clen =
+                snprintf(color_buf, sizeof(color_buf), "\x1b[%dm", color);
             screenBufferAppend(sb, color_buf, clen);
           }
           screenBufferAppend(sb, &c[j], 1);
@@ -873,13 +933,14 @@ void texRenderStatusBar(struct ScreenBuffer *sb) {
 
   char status[80], rstatus[80];
   int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-    app.filepath ? app.filepath : "[No Name]", app.num_lines,
-    app.is_modified ? "(modified)" : "");
+                     app.filepath ? app.filepath : "[No Name]", app.num_lines,
+                     app.is_modified ? "(modified)" : "");
   int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
-    app.syntax ? app.syntax->filetype : "no ft",
-    app.cursor_y + 1, app.num_lines);
+                      app.syntax ? app.syntax->filetype : "no ft",
+                      app.cursor_y + 1, app.num_lines);
 
-  if (len > app.screen_cols) len = app.screen_cols;
+  if (len > app.screen_cols)
+    len = app.screen_cols;
   screenBufferAppend(sb, status, len);
 
   while (len < app.screen_cols) {
@@ -898,7 +959,8 @@ void texRenderStatusBar(struct ScreenBuffer *sb) {
 void texRenderMessageBar(struct ScreenBuffer *sb) {
   screenBufferAppend(sb, "\x1b[K", 3);
   int msglen = strlen(app.status_message);
-  if (msglen > app.screen_cols) msglen = app.screen_cols;
+  if (msglen > app.screen_cols)
+    msglen = app.screen_cols;
   if (msglen && time(NULL) - app.status_message_time < 5) {
     screenBufferAppend(sb, app.status_message, msglen);
   }
@@ -940,35 +1002,36 @@ void texSetStatusMessage(const char *fmt, ...) {
 /*** Cursor Navigation ***/
 
 void texNavigateCursor(int key) {
-  TexLine *row = (app.cursor_y >= app.num_lines) ? NULL : &app.lines[app.cursor_y];
+  TexLine *row =
+      (app.cursor_y >= app.num_lines) ? NULL : &app.lines[app.cursor_y];
 
   switch (key) {
-    case KEY_ARROW_LEFT:
-      if (app.cursor_x != 0) {
-        app.cursor_x--;
-      } else if (app.cursor_y > 0) {
-        app.cursor_y--;
-        app.cursor_x = app.lines[app.cursor_y].size;
-      }
-      break;
-    case KEY_ARROW_RIGHT:
-      if (row && app.cursor_x < row->size) {
-        app.cursor_x++;
-      } else if (row && app.cursor_x == row->size) {
-        app.cursor_y++;
-        app.cursor_x = 0;
-      }
-      break;
-    case KEY_ARROW_UP:
-      if (app.cursor_y != 0) {
-        app.cursor_y--;
-      }
-      break;
-    case KEY_ARROW_DOWN:
-      if (app.cursor_y < app.num_lines) {
-        app.cursor_y++;
-      }
-      break;
+  case KEY_ARROW_LEFT:
+    if (app.cursor_x != 0) {
+      app.cursor_x--;
+    } else if (app.cursor_y > 0) {
+      app.cursor_y--;
+      app.cursor_x = app.lines[app.cursor_y].size;
+    }
+    break;
+  case KEY_ARROW_RIGHT:
+    if (row && app.cursor_x < row->size) {
+      app.cursor_x++;
+    } else if (row && app.cursor_x == row->size) {
+      app.cursor_y++;
+      app.cursor_x = 0;
+    }
+    break;
+  case KEY_ARROW_UP:
+    if (app.cursor_y != 0) {
+      app.cursor_y--;
+    }
+    break;
+  case KEY_ARROW_DOWN:
+    if (app.cursor_y < app.num_lines) {
+      app.cursor_y++;
+    }
+    break;
   }
 
   row = (app.cursor_y >= app.num_lines) ? NULL : &app.lines[app.cursor_y];
@@ -986,78 +1049,79 @@ void texHandleKeyPress(void) {
   int key = texReadInputKey();
 
   switch (key) {
-    case '\r':
-      texInsertNewline();
-      break;
+  case '\r':
+    texInsertNewline();
+    break;
 
-    case TEX_CTRL('q'):
-      if (app.is_modified && quit_times > 0) {
-        texSetStatusMessage("WARNING: File has unsaved changes! Press Ctrl-Q %d more time%s to discard.",
-                            quit_times, quit_times > 1 ? "s" : "");
-        quit_times--;
-        return;
-      }
-      write(STDOUT_FILENO, "\x1b[2J", 4);
-      write(STDOUT_FILENO, "\x1b[H", 3);
-      exit(0);
-      break;
+  case TEX_CTRL('q'):
+    if (app.is_modified && quit_times > 0) {
+      texSetStatusMessage("WARNING: File has unsaved changes! Press Ctrl-Q %d "
+                          "more time%s to discard.",
+                          quit_times, quit_times > 1 ? "s" : "");
+      quit_times--;
+      return;
+    }
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
+    exit(0);
+    break;
 
-    case TEX_CTRL('s'):
-      texSaveFile();
-      break;
+  case TEX_CTRL('s'):
+    texSaveFile();
+    break;
 
-    case KEY_HOME:
-      app.cursor_x = 0;
-      break;
+  case KEY_HOME:
+    app.cursor_x = 0;
+    break;
 
-    case KEY_END:
-      if (app.cursor_y < app.num_lines) {
-        app.cursor_x = app.lines[app.cursor_y].size;
-      }
-      break;
+  case KEY_END:
+    if (app.cursor_y < app.num_lines) {
+      app.cursor_x = app.lines[app.cursor_y].size;
+    }
+    break;
 
-    case TEX_CTRL('f'):
-      texSearch();
-      break;
+  case TEX_CTRL('f'):
+    texSearch();
+    break;
 
-    case KEY_BACKSPACE:
-    case TEX_CTRL('h'):
-    case KEY_DEL:
-      if (key == KEY_DEL) texNavigateCursor(KEY_ARROW_RIGHT);
-      texDeleteChar();
-      break;
+  case KEY_BACKSPACE:
+  case TEX_CTRL('h'):
+  case KEY_DEL:
+    if (key == KEY_DEL)
+      texNavigateCursor(KEY_ARROW_RIGHT);
+    texDeleteChar();
+    break;
 
-    case KEY_PAGE_UP:
-    case KEY_PAGE_DOWN:
-      {
-        if (key == KEY_PAGE_UP) {
-          app.cursor_y = app.row_offset;
-        } else if (key == KEY_PAGE_DOWN) {
-          app.cursor_y = app.row_offset + app.screen_rows - 1;
-          if (app.cursor_y > app.num_lines) app.cursor_y = app.num_lines;
-        }
+  case KEY_PAGE_UP:
+  case KEY_PAGE_DOWN: {
+    if (key == KEY_PAGE_UP) {
+      app.cursor_y = app.row_offset;
+    } else if (key == KEY_PAGE_DOWN) {
+      app.cursor_y = app.row_offset + app.screen_rows - 1;
+      if (app.cursor_y > app.num_lines)
+        app.cursor_y = app.num_lines;
+    }
 
-        int times = app.screen_rows;
-        while (times--) {
-          texNavigateCursor(key == KEY_PAGE_UP ? KEY_ARROW_UP : KEY_ARROW_DOWN);
-        }
-      }
-      break;
+    int times = app.screen_rows;
+    while (times--) {
+      texNavigateCursor(key == KEY_PAGE_UP ? KEY_ARROW_UP : KEY_ARROW_DOWN);
+    }
+  } break;
 
-    case KEY_ARROW_UP:
-    case KEY_ARROW_DOWN:
-    case KEY_ARROW_LEFT:
-    case KEY_ARROW_RIGHT:
-      texNavigateCursor(key);
-      break;
+  case KEY_ARROW_UP:
+  case KEY_ARROW_DOWN:
+  case KEY_ARROW_LEFT:
+  case KEY_ARROW_RIGHT:
+    texNavigateCursor(key);
+    break;
 
-    case TEX_CTRL('l'):
-    case '\x1b':
-      break;
+  case TEX_CTRL('l'):
+  case '\x1b':
+    break;
 
-    default:
-      texInsertChar(key);
-      break;
+  default:
+    texInsertChar(key);
+    break;
   }
 
   quit_times = TEX_QUIT_CONFIRMATIONS;
